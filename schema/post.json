@@ -10,5 +10,5 @@
         "id": 3,
         "quantity": 10
     }],
-    "salaryNegotiable": true
+    "salaryNegotiable": false
 }
