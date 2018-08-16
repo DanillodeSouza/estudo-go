@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 
@@ -14,7 +15,11 @@ import (
 
 type JobAd struct {
 	Id    int    `json:"id"`
-	title string `json:"title"`
+	Title string `json:"title"`
+}
+
+type Errors struct {
+	Messages []string `json:"messages"`
 }
 
 var jobads []JobAd
@@ -30,12 +35,12 @@ func main() {
 }
 
 func GetJobAds(w http.ResponseWriter, r *http.Request) {
-	jobads = append(jobads, JobAd{Id: 1, title: "Desenvolvedor Gopher"})
+	jobads = append(jobads, JobAd{Id: 1, Title: "Desenvolvedor Gopher"})
 	json.NewEncoder(w).Encode(jobads)
 }
 
 func GetJobAd(w http.ResponseWriter, r *http.Request) {
-	jobads = append(jobads, JobAd{Id: 1, title: "Desenvolvedor Gopher"})
+	jobads = append(jobads, JobAd{Id: 1, Title: "Desenvolvedor Gopher"})
 	json.NewEncoder(w).Encode(jobads)
 }
 
@@ -46,13 +51,12 @@ func CreateJobAd(w http.ResponseWriter, r *http.Request) {
 	}
 	errors := validatePost(string(body))
 
-	if len(errors) > 0 {
+	if len(errors.Messages) > 0 {
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(errors)
 	} else {
 		var jobAd JobAd
 		err = json.Unmarshal(body, &jobAd)
-		fmt.Println(jobAd)
 
 		if err != nil {
 			panic(err)
@@ -60,10 +64,11 @@ func CreateJobAd(w http.ResponseWriter, r *http.Request) {
 		jobAd.Id = len(jobads) + 1
 		jobads = append(jobads, jobAd)
 		json.NewEncoder(w).Encode(jobads)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	}
 }
 
-func validatePost(post string) []string {
+func validatePost(post string) *Errors {
 	pwd, _ := os.Getwd()
 	schemaLoader := gojsonschema.NewReferenceLoader("file:///" + pwd + "/schema/schema.json")
 	stringLoader := gojsonschema.NewStringLoader(post)
@@ -73,14 +78,18 @@ func validatePost(post string) []string {
 		panic(err.Error())
 	}
 	var errors []string
+	response := &Errors{}
 	if result.Valid() {
-		return errors
+		return response
 	}
 
 	for _, desc := range result.Errors() {
 		errors = append(errors, desc.Description())
 	}
-	return errors
+
+	response = &Errors{
+		Messages: errors}
+	return response
 }
 
 func DeleteJobAd(w http.ResponseWriter, r *http.Request) {}
