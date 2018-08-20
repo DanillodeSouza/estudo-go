@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 
@@ -14,8 +12,9 @@ import (
 )
 
 type JobAd struct {
-	Id    int    `json:"id"`
-	Title string `json:"title"`
+	Id               int    `json:"id"`
+	Title            string `json:"title"`
+	SalaryNegotiable bool   `json:"salaryNegotiable"`
 }
 
 type Errors struct {
@@ -35,16 +34,19 @@ func main() {
 }
 
 func GetJobAds(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	jobads = append(jobads, JobAd{Id: 1, Title: "Desenvolvedor Gopher"})
 	json.NewEncoder(w).Encode(jobads)
 }
 
 func GetJobAd(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	jobads = append(jobads, JobAd{Id: 1, Title: "Desenvolvedor Gopher"})
 	json.NewEncoder(w).Encode(jobads)
 }
 
 func CreateJobAd(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
@@ -64,11 +66,10 @@ func CreateJobAd(w http.ResponseWriter, r *http.Request) {
 		jobAd.Id = len(jobads) + 1
 		jobads = append(jobads, jobAd)
 		json.NewEncoder(w).Encode(jobads)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	}
 }
 
-func validatePost(post string) *Errors {
+func validatePost(post string) Errors {
 	pwd, _ := os.Getwd()
 	schemaLoader := gojsonschema.NewReferenceLoader("file:///" + pwd + "/schema/schema.json")
 	stringLoader := gojsonschema.NewStringLoader(post)
@@ -77,17 +78,17 @@ func validatePost(post string) *Errors {
 	if err != nil {
 		panic(err.Error())
 	}
-	var errors []string
-	response := &Errors{}
+
 	if result.Valid() {
-		return response
+		return Errors{}
 	}
 
+	var errors []string
 	for _, desc := range result.Errors() {
 		errors = append(errors, desc.Description())
 	}
 
-	response = &Errors{
+	response := Errors{
 		Messages: errors}
 	return response
 }
